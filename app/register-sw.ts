@@ -4,10 +4,10 @@ export function registerServiceWorker() {
       navigator.serviceWorker
         .register("/sw.js")
         .then((registration) => {
-          console.log("[GymMine] Service Worker registered:", registration)
+          console.log("[TosRean] Service Worker registered:", registration)
         })
         .catch((error) => {
-          console.log("[GymMine] Service Worker registration failed:", error)
+          console.log("[TosRean] Service Worker registration failed:", error)
         })
     })
   }

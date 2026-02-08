@@ -10,14 +10,14 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" })
 
 export const metadata: Metadata = {
-  title: "GymMine - Your Personal Gym Manager",
-  description: "Manage your gym schedule, workouts, nutrition, and track your fitness progress",
+  title: "TosRean - Learn Anything, Anywhere",
+  description: "Master new skills with our comprehensive online courses. Learn from industry experts and advance your career.",
   manifest: "/manifest.json",
   themeColor: "#0ea5e9",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "GymMine",
+    title: "TosRean",
   },
   viewport: {
     width: "device-width",
@@ -25,7 +25,8 @@ export const metadata: Metadata = {
     maximumScale: 1,
     userScalable: false,
   },
-    generator: 'v0.app'
+  keywords: ["e-learning", "online courses", "education", "skills", "career growth"],
+  generator: 'v0.app'
 }
 
 export default function RootLayout({

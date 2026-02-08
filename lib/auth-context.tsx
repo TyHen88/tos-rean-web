@@ -6,90 +6,161 @@ import type { User } from "./types"
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<boolean>
+  loginWithGoogle: () => Promise<boolean>
   logout: () => void
-  register: (email: string, password: string, name: string, role?: "admin" | "user") => Promise<boolean>
+  register: (email: string, password: string, name: string, role?: "admin" | "student" | "instructor") => Promise<boolean>
   isAuthenticated: boolean
   isAdmin: boolean
+  isLoading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+import { auth } from "@/lib/firebase"
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup,
+  onAuthStateChanged
+} from "firebase/auth"
+import { authApi } from "./api/auth"
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check for existing session
-    const storedUser = localStorage.getItem("gymmine_user")
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser)
-      setUser(parsedUser)
-      setIsAuthenticated(true)
+    const initAuth = async () => {
+      // 1. Check local storage for immediate UI update
+      const storedUser = localStorage.getItem("tosrean_user")
+      const token = localStorage.getItem("tosrean_token")
+
+      if (storedUser && token) {
+        try {
+          const parsedUser = JSON.parse(storedUser)
+          setUser(parsedUser)
+          setIsAuthenticated(true)
+        } catch (e) {
+          console.error("Failed to parse stored user", e)
+        }
+      }
+
+      // 2. Validate token/session with backend
+      if (token) {
+        try {
+          const response = await authApi.getMe()
+          setUser(response.data)
+          setIsAuthenticated(true)
+          localStorage.setItem("tosrean_user", JSON.stringify(response.data))
+        } catch (error) {
+          console.error("Session expired or invalid:", error)
+          localStorage.removeItem("tosrean_token")
+          localStorage.removeItem("tosrean_user")
+          setIsAuthenticated(false)
+          setUser(null)
+        }
+      }
+
+      setIsLoading(false)
     }
+
+    initAuth()
   }, [])
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    // Get users from localStorage
-    const usersData = localStorage.getItem("gymmine_users")
-    const users = usersData ? JSON.parse(usersData) : []
+  const loginWithGoogle = async (): Promise<boolean> => {
+    try {
+      const provider = new GoogleAuthProvider()
+      const userCredential = await signInWithPopup(auth, provider)
+      const idToken = await userCredential.user.getIdToken(true)
 
-    const foundUser = users.find((u: User & { password: string }) => u.email === email && u.password === password)
+      const response = await authApi.syncFirebaseUser(idToken)
 
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser
-      setUser(userWithoutPassword)
+      const { user: backendUser, token } = response.data
+      setUser(backendUser)
       setIsAuthenticated(true)
-      localStorage.setItem("gymmine_user", JSON.stringify(userWithoutPassword))
+      localStorage.setItem("tosrean_token", token)
+      localStorage.setItem("tosrean_user", JSON.stringify(backendUser))
       return true
+    } catch (error) {
+      console.error("Google login failed:", error)
+      return false
     }
+  }
 
-    return false
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      // 1. Authenticate with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+
+      // 2. Get the real ID Token
+      const idToken = await userCredential.user.getIdToken(true)
+
+      // 3. Sync with our backend
+      const response = await authApi.syncFirebaseUser(idToken)
+
+      const { user, token } = response.data
+      setUser(user)
+      setIsAuthenticated(true)
+      localStorage.setItem("tosrean_token", token)
+      localStorage.setItem("tosrean_user", JSON.stringify(user))
+      return true
+    } catch (error) {
+      console.error("Login failed:", error)
+      return false
+    }
   }
 
   const register = async (
     email: string,
     password: string,
     name: string,
-    role: "admin" | "user" = "user",
+    role: "admin" | "student" | "instructor" = "student",
   ): Promise<boolean> => {
-    const usersData = localStorage.getItem("gymmine_users")
-    const users = usersData ? JSON.parse(usersData) : []
+    try {
+      // 1. Create user in Firebase
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
 
-    // Check if user already exists
-    if (users.some((u: User) => u.email === email)) {
+      // 2. Set display name in Firebase
+      await updateProfile(userCredential.user, { displayName: name })
+
+      // 3. Get the real ID Token
+      const idToken = await userCredential.user.getIdToken(true)
+
+      // 4. Sync with our backend (sending name and role for initial creation)
+      const response = await authApi.register(email, name, idToken, role.toUpperCase())
+
+      const { user, token } = response.data
+      setUser(user)
+      setIsAuthenticated(true)
+      localStorage.setItem("tosrean_token", token)
+      localStorage.setItem("tosrean_user", JSON.stringify(user))
+      return true
+    } catch (error) {
+      console.error("Registration failed:", error)
       return false
     }
+  }
 
-    const newUser = {
-      id: crypto.randomUUID(),
-      email,
-      password,
-      name,
-      role,
-      createdAt: new Date().toISOString(),
+  const logout = async () => {
+    try {
+      await firebaseSignOut(auth)
+      setUser(null)
+      setIsAuthenticated(false)
+      localStorage.removeItem("tosrean_user")
+      localStorage.removeItem("tosrean_token")
+    } catch (error) {
+      console.error("Logout failed:", error)
     }
-
-    users.push(newUser)
-    localStorage.setItem("gymmine_users", JSON.stringify(users))
-
-    const { password: _, ...userWithoutPassword } = newUser
-    setUser(userWithoutPassword)
-    setIsAuthenticated(true)
-    localStorage.setItem("gymmine_user", JSON.stringify(userWithoutPassword))
-
-    return true
   }
 
-  const logout = () => {
-    setUser(null)
-    setIsAuthenticated(false)
-    localStorage.removeItem("gymmine_user")
-  }
-
-  const isAdmin = user?.role === "admin"
+  const isAdmin = user?.role === "ADMIN" || user?.role === "admin"
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, register, isAuthenticated, isAdmin }}>
+    <AuthContext.Provider value={{ user, login, logout, register, isAuthenticated, isAdmin, loginWithGoogle, isLoading }}>
       {children}
     </AuthContext.Provider>
   )

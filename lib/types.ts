@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "user"
+export type UserRole = "ADMIN" | "STUDENT" | "INSTRUCTOR" | "admin" | "student" | "instructor"
 
 export interface User {
   id: string
@@ -6,75 +6,62 @@ export interface User {
   name: string
   role: UserRole
   avatar?: string
+  bio?: string
   createdAt: string
 }
 
-export interface GymSchedule {
-  id: string
-  userId: string
-  title: string
-  description: string
-  date: string
-  startTime: string
-  endTime: string
-  exercises: string[]
-  completed: boolean
-  createdAt: string
-}
-
-export interface WorkoutVideo {
+export interface Course {
   id: string
   title: string
   description: string
-  videoUrl: string
   thumbnail: string
-  duration: string
+  instructorId: string
+  instructorName: string
+  price: number
+  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "ALL_LEVELS" | "Beginner" | "Intermediate" | "Advanced" | "All Levels"
   category: string
-  difficulty: "beginner" | "intermediate" | "advanced"
-  createdBy: string
+  tags: string[]
+  duration: string
+  lessonsCount: number
+  studentsCount: number
+  rating: number
+  videoUrl?: string // Promo video
+  content?: string // Markdown description
+  status: "draft" | "published" | "archived"
   createdAt: string
+  updatedAt: string
 }
 
-export interface FoodEntry {
+export interface Lesson {
   id: string
-  userId: string
-  name: string
-  type: "food" | "drink"
-  calories: number
-  protein: number
-  carbs: number
-  fats: number
-  date: string
-  mealType: "breakfast" | "lunch" | "dinner" | "snack"
-  createdAt: string
-}
-
-export interface TodoItem {
-  id: string
-  userId: string
+  courseId: string
   title: string
   description: string
-  completed: boolean
-  priority: "low" | "medium" | "high"
-  dueDate: string
-  category: "workout" | "nutrition" | "general"
+  videoUrl?: string
+  content?: string // Markdown content or transcript
+  duration: number // in minutes
+  order: number
+  isFree: boolean
+  attachments?: { name: string; url: string }[]
   createdAt: string
 }
 
-export interface ProgressEntry {
+export interface Enrollment {
   id: string
   userId: string
-  date: string
-  weight?: number
-  bodyFat?: number
-  measurements?: {
-    chest?: number
-    waist?: number
-    hips?: number
-    arms?: number
-    legs?: number
-  }
-  notes: string
-  photos?: string[]
+  courseId: string
+  progress: number // percentage 0-100
+  completedLessons: string[] // IDs of completed lessons
+  enrolledAt: string
+  lastAccessedAt: string
+}
+
+export interface Review {
+  id: string
+  courseId: string
+  userId: string
+  userName: string
+  rating: number
+  comment: string
   createdAt: string
 }
