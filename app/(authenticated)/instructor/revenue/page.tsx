@@ -1,22 +1,19 @@
 "use client"
 
-import {
-    Wallet,
-    ArrowUpRight,
-    ArrowDownRight,
-    Download,
-    Calendar,
-    CreditCard,
-    TrendingUp,
-    DollarSign,
-    History,
-    MoreHorizontal,
-    ChevronRight,
-    PieChart,
-    BarChart4
-} from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+    ArrowDownRight,
+    ArrowUpRight,
+    Calendar,
+    ChevronRight,
+    DollarSign,
+    Download,
+    History,
+    PieChart,
+    TrendingUp,
+    Wallet
+} from "lucide-react"
 
 export default function InstructorRevenue() {
     const earningsData = [

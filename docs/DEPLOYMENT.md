@@ -1,4 +1,4 @@
-# GymMine PWA - Vercel Deployment Guide
+# Tos-Rean Platform - Vercel Deployment Guide
 
 ## Pre-Deployment Checklist
 
@@ -71,8 +71,8 @@ No environment variables are currently required, but you can add them in the Ver
 - Automatically updates when new content is deployed
 
 ### Manifest
-- App name: "GymMine - Your Personal Gym Manager"
-- Short name: "GymMine"
+- App name: "Tos-Rean - Your Personal Learning Manager"
+- Short name: "Tos-Rean"
 - Theme color: #0ea5e9
 - Icons: 192x192 and 512x512 available
 
@@ -123,4 +123,4 @@ If issues occur:
 
 **Ready for deployment!** 🚀
 
-Your GymMine PWA is configured and ready for Vercel deployment.
+Your Tos-Rean platform is configured and ready for Vercel deployment.
