@@ -1,6 +1,7 @@
 {
   "name": "tos-rean",
   "version": "0.1.0",
+  "packageManager": "npm@10.8.2",
   "private": true,
   "scripts": {
     "build": "next build",
