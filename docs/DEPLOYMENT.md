@@ -60,8 +60,17 @@ vercel
 
 ## Environment Variables
 
-No environment variables are currently required, but you can add them in the Vercel dashboard under:
-**Project Settings > Environment Variables**
+**CRITICAL**: You must configure environment variables before deployment. See the complete guide:
+📄 **[VERCEL_ENV_VARS.md](./VERCEL_ENV_VARS.md)**
+
+### Quick Setup
+1. Go to Vercel Dashboard > Your Project > **Settings > Environment Variables**
+2. Add the following required variables:
+   - `NEXT_PUBLIC_API_URL` - Backend API endpoint (https://tos-reans-api.onrender.com/api)
+   - Firebase Admin SDK credentials (server-side)
+   - Firebase Client SDK credentials (client-side)
+3. Select environments: Production, Preview, Development
+4. Click **Save** and redeploy
 
 ## PWA-Specific Considerations
 
