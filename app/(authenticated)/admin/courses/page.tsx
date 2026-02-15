@@ -1,222 +1,211 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import { useAuth } from "@/lib/auth-context"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { useState } from "react"
+import {
+  BookOpen,
+  Search,
+  Filter,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Eye,
+  ExternalLink,
+  ShieldCheck,
+  History,
+  MoreHorizontal,
+  ChevronRight,
+  TrendingUp,
+  Clock
+} from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import type { Course, Lesson } from "@/lib/types"
-import { CourseWizard } from "@/components/admin/course-wizard/CourseWizard"
-import { coursesApi } from "@/lib/api/courses"
-import { enrollmentsApi } from "@/lib/api/enrollments"
-import { Loader2, Plus, Edit, Trash2, BookOpen, Search } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Input } from "@/components/ui/input"
 
-export default function AdminCoursesPage() {
-  const { user, isAdmin } = useAuth()
-  const router = useRouter()
-  const [courses, setCourses] = useState<Course[]>([])
-  const [loading, setLoading] = useState(true)
-  const [isWizardOpen, setIsWizardOpen] = useState(false)
-  const [editingCourse, setEditingCourse] = useState<Course | null>(null)
-  const [editingLessons, setEditingLessons] = useState<Lesson[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
-
-  useEffect(() => {
-    if (!isAdmin && user?.role?.toUpperCase() !== 'INSTRUCTOR') {
-      router.push("/dashboard")
-    }
-  }, [isAdmin, user, router])
-
-  useEffect(() => {
-    loadCourses()
-  }, [])
-
-  const loadCourses = async () => {
-    setLoading(true)
-    try {
-      const response = await coursesApi.listCourses()
-      setCourses(response.data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
-    } catch (error) {
-      console.error("Failed to load courses:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadLessons = async (courseId: string) => {
-    try {
-      const response = await enrollmentsApi.getCourseContent(courseId)
-      return response.data.lessons
-    } catch (error) {
-      console.error("Failed to load lessons:", error)
-      return []
-    }
-  }
-
-  const handleSaveCourse = async (courseData: Course, lessons: Lesson[]) => {
-    try {
-      let savedCourse: Course;
-
-      // Sanitize fields to avoid backend validation errors (e.g. sending ID for POST)
-      const { id, createdAt, updatedAt, instructorId, instructorName, rating, studentsCount, lessonsCount, ...sanitizedData } = courseData;
-
-      if (editingCourse) {
-        const response = await coursesApi.updateCourse(editingCourse.id, sanitizedData)
-        savedCourse = response.data
-      } else {
-        const response = await coursesApi.createCourse(sanitizedData)
-        savedCourse = response.data
-      }
-
-      // Ensure each lesson has the correct courseId set
-      const sanitizedLessons = lessons.map(lesson => ({
-        ...lesson,
-        courseId: savedCourse.id
-      }));
-
-      // Bulk save lessons
-      await coursesApi.bulkSaveLessons(savedCourse.id, sanitizedLessons)
-
-      setEditingCourse(null)
-      setEditingLessons([])
-      loadCourses()
-      setIsWizardOpen(false)
-    } catch (error) {
-      console.error("Failed to save course:", error)
-      alert("Failed to save course. Please check if all fields are correct.")
-    }
-  }
-
-  const handleEdit = async (course: Course) => {
-    setLoading(true)
-    const lessons = await loadLessons(course.id)
-    setEditingCourse(course)
-    setEditingLessons(lessons)
-    setLoading(false)
-    setIsWizardOpen(true)
-  }
-
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this course?")) {
-      try {
-        await coursesApi.updateCourse(id, { status: 'archived' })
-        loadCourses()
-      } catch (error) {
-        console.error("Failed to delete course:", error)
-      }
-    }
-  }
-
-  const handleCreateNew = () => {
-    setEditingCourse(null)
-    setEditingLessons([])
-    setIsWizardOpen(true)
-  }
-
-  if (!isAdmin && user?.role?.toUpperCase() !== 'INSTRUCTOR') {
-    return null
-  }
-
-  const filteredCourses = courses.filter(course =>
-    course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    course.category.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+export default function CourseModeration() {
+  const [queue, setQueue] = useState([
+    {
+      id: 1,
+      title: "Advanced Quantum Computing for UX",
+      instructor: "Dr. Jonathan Smith",
+      submissionDate: "2h ago",
+      complexity: "Advanced",
+      status: "AWAITING_REVIEW",
+      lessons: 24,
+      instructorAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=100&h=100&auto=format&fit=crop"
+    },
+    {
+      id: 2,
+      title: "Introduction to Organic Architecture",
+      instructor: "Sarah Jenkins",
+      submissionDate: "5h ago",
+      complexity: "Beginner",
+      status: "UNDER_MODERATION",
+      lessons: 12,
+      instructorAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=100&h=100&auto=format&fit=crop"
+    },
+    {
+      id: 3,
+      title: "Mastering Next.js 15: Edge Edition",
+      instructor: "Michael Chen",
+      submissionDate: "1d ago",
+      complexity: "Advanced",
+      status: "AWAITING_REVIEW",
+      lessons: 48,
+      instructorAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100&h=100&auto=format&fit=crop"
+    },
+  ])
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Manage Courses</h1>
-          <p className="text-muted-foreground">Create and manage your educational content</p>
+          <h1 className="text-4xl font-bold tracking-tight text-foreground">Course Moderation</h1>
+          <p className="text-muted-foreground mt-1">Review, approve, or flag curriculum submissions to maintain platform quality.</p>
         </div>
-        <Button onClick={handleCreateNew}>
-          <Plus className="w-4 h-4 mr-2" />
-          Create Course
+        <div className="flex items-center gap-4 py-2 px-6 rounded-2xl bg-accent/10 border border-accent/20">
+          <ShieldCheck className="w-5 h-5 text-accent animate-pulse" />
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-accent opacity-70 leading-none">Security Status</span>
+            <span className="font-bold text-lg leading-tight text-foreground">Scan Shield Active</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Moderation Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="glass-card p-6 rounded-2xl border border-border/50 bg-card/50 flex flex-col justify-between group cursor-pointer hover:border-primary/50 transition-colors">
+          <div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60 mb-2">Review Queue</p>
+            <h3 className="text-3xl font-bold italic group-hover:text-primary transition-colors">12</h3>
+          </div>
+          <div className="flex items-center gap-1 text-[10px] font-bold text-[oklch(0.6_0.118_184.704)] mt-4">
+            <TrendingUp className="w-3.5 h-3.5" /> High Urgency Items
+          </div>
+        </div>
+        <div className="glass-card p-6 rounded-2xl border border-border/50 bg-card/50 flex flex-col justify-between">
+          <div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60 mb-2">Avg. Review Time</p>
+            <h3 className="text-3xl font-bold italic">4.2<span className="text-sm font-medium not-italic ml-1 opacity-60">h</span></h3>
+          </div>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-4">Targets met</p>
+        </div>
+        <div className="glass-card p-6 rounded-2xl border border-border/50 bg-card/50 flex flex-col justify-between">
+          <div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60 mb-2">Quality Index</p>
+            <h3 className="text-3xl font-bold italic text-[oklch(0.6_0.118_184.704)]">98.4%</h3>
+          </div>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-4">Pass rate</p>
+        </div>
+        <div className="glass-card p-6 rounded-2xl border border-border/50 bg-card/50 flex flex-col justify-between">
+          <div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60 mb-2">Flagged Today</p>
+            <h3 className="text-3xl font-bold italic text-destructive">2</h3>
+          </div>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-4">Resolved: 100%</p>
+        </div>
+      </div>
+
+      {/* Control Surface */}
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by course title or instructor..."
+            className="pl-11 h-12 bg-card/40 backdrop-blur-md rounded-xl border-border/40"
+          />
+        </div>
+        <Button variant="outline" className="h-12 rounded-xl border-border/40 px-6 gap-2 font-bold text-xs uppercase tracking-widest hover:bg-primary/5">
+          <Filter className="w-4 h-4" /> Priority Selection
         </Button>
       </div>
 
-      {isWizardOpen && (
-        <CourseWizard
-          initialData={editingCourse}
-          initialLessons={editingLessons}
-          onClose={() => setIsWizardOpen(false)}
-          onSave={handleSaveCourse}
-        />
-      )}
+      {/* Course Moderation Feed */}
+      <div className="space-y-4">
+        {queue.map((course) => (
+          <div key={course.id} className="glass-card rounded-3xl border border-border/50 bg-card/50 hover:bg-card/80 transition-all duration-500 overflow-hidden group">
+            <div className="flex flex-col lg:flex-row lg:items-center p-8 gap-8">
+              {/* Submission Icon */}
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                <BookOpen className="w-8 h-8 text-primary" />
+              </div>
 
-      <div className="flex items-center space-x-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search courses..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Courses List */}
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-16 h-16 text-primary animate-spin mb-4" />
-          <p className="text-muted-foreground">Fetching courses...</p>
-        </div>
-      ) : filteredCourses.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <BookOpen className="w-16 h-16 text-muted-foreground/50 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No courses found</h3>
-            <p className="text-muted-foreground mb-4">Create your first course to get started</p>
-            <Button onClick={handleCreateNew} variant="outline">Create Course</Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 gap-6">
-          {filteredCourses.map((course) => (
-            <Card key={course.id} className="overflow-hidden">
-              <div className="flex flex-col md:flex-row">
-                <div className="w-full md:w-48 aspect-video bg-muted relative">
-                  <img
-                    src={course.thumbnail}
-                    alt={course.title}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
+              {/* Course & Instructor Info */}
+              <div className="flex-1 min-w-[300px]">
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="font-bold text-xl group-hover:text-primary transition-colors">{course.title}</h4>
+                  {course.lessons > 25 && (
+                    <Badge className="bg-accent/10 text-accent border-accent/20 rounded-lg text-[9px] font-bold uppercase tracking-widest">Compendium</Badge>
+                  )}
                 </div>
-                <div className="flex-1 p-6 flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-bold text-lg">{course.title}</h3>
-                        <p className="text-sm text-muted-foreground line-clamp-2">{course.description}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="icon" variant="ghost" onClick={() => handleEdit(course)}>
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDelete(course.id)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                      <Badge variant="secondary" className="capitalize">{course.category}</Badge>
-                      <Badge variant="outline">{course.level}</Badge>
-                      <span className="flex items-center gap-1">• {course.duration}</span>
-                      <span className="flex items-center gap-1">• {course.lessonsCount} lessons</span>
-                      <span className="flex items-center gap-1 font-medium text-foreground ml-auto">${course.price}</span>
-                    </div>
-                  </div>
+                <div className="flex items-center gap-3">
+                  <Avatar className="w-6 h-6 border border-border/30">
+                    <AvatarImage src={course.instructorAvatar} />
+                    <AvatarFallback className="text-[9px] font-bold">{course.instructor[0]}</AvatarFallback>
+                  </Avatar>
+                  <p className="text-sm font-bold opacity-70 underline decoration-primary/20 hover:decoration-primary transition-all cursor-pointer">
+                    {course.instructor}
+                  </p>
+                  <span className="h-4 w-px bg-border/40 mx-1" />
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" /> {course.submissionDate}
+                  </p>
                 </div>
               </div>
-            </Card>
-          ))}
+
+              {/* Quality Metrics */}
+              <div className="flex items-center gap-10 lg:min-w-[280px]">
+                <div className="text-center">
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1 opacity-50">Lessons</p>
+                  <p className="font-bold text-lg leading-none">{course.lessons}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1 opacity-50">Level</p>
+                  <Badge variant="outline" className="rounded-lg text-[9px] font-bold px-2 py-0 border-border/30">
+                    {course.complexity}
+                  </Badge>
+                </div>
+                <div className="text-right flex-1">
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1 opacity-50">Status</p>
+                  <Badge className={`rounded-lg font-bold text-[9px] tracking-widest py-1 px-3 ${course.status === 'UNDER_MODERATION' ? 'bg-accent/10 text-accent border-accent/20' :
+                    'bg-primary/20 text-primary border-primary/30'
+                    }`}>
+                    {course.status.replace('_', ' ')}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Action Column */}
+              <div className="flex items-center gap-3 justify-end border-t lg:border-t-0 lg:pl-8 border-border/20 pt-6 lg:pt-0">
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-destructive/10 text-destructive opacity-40 hover:opacity-100 transition-all">
+                  <XCircle className="w-5 h-5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-accent/10 text-accent">
+                  <Eye className="w-5 h-5" />
+                </Button>
+                <Button className="rounded-xl px-8 font-bold bg-primary shadow-lg shadow-primary/20 group-hover:scale-[1.03] transition-transform">
+                  Approve
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Audit Log Hint */}
+      <div className="p-6 rounded-3xl bg-muted/20 border border-border/30 flex items-center justify-between group cursor-pointer hover:bg-muted/40 transition-all">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-background flex items-center justify-center border border-border/30">
+            <History className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <div>
+            <h4 className="font-bold text-sm">View Full Moderation Audit</h4>
+            <p className="text-xs text-muted-foreground font-medium">1,240 decisions made this month.</p>
+          </div>
         </div>
-      )}
+        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+      </div>
     </div>
   )
 }

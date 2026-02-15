@@ -105,19 +105,7 @@ export default function RegisterPage() {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">Account Type</Label>
-              <Select value={role} onValueChange={(value: "student" | "instructor" | "admin") => setRole(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="instructor">Instructor</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account..." : "Create Account"}

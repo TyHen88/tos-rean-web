@@ -42,7 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto bg-background">
-        <div className="pt-16 pb-20 lg:pt-0 lg:pb-0">{children}</div>
+        <div className="pt-24 pb-24 px-6 md:px-10 lg:pt-10 lg:pb-10">{children}</div>
       </main>
     </div>
   )

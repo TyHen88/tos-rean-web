@@ -9,7 +9,7 @@ export interface MyLearningResponse {
 export interface CourseContentResponse {
   success: boolean;
   data: {
-    lessons: Lesson[];
+    course: Course & { lessons: Lesson[] };
     completedLessons: string[];
   };
 }

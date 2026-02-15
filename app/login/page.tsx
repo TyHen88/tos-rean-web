@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
+import { toast } from "sonner"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -27,8 +28,10 @@ export default function LoginPage() {
     const success = await login(email, password)
 
     if (success) {
+      toast.success("Login successful")
       router.push("/dashboard")
     } else {
+      toast.error("Invalid email or password")
       setError("Invalid email or password")
     }
 
@@ -40,8 +43,10 @@ export default function LoginPage() {
     setLoading(true)
     const success = await loginWithGoogle()
     if (success) {
+      toast.success("Login successful")
       router.push("/dashboard")
     } else {
+      toast.error("Google login failed. Please try again.")
       setError("Google login failed. Please try again.")
     }
     setLoading(false)

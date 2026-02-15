@@ -1,36 +1,34 @@
 import { apiClient } from "../api-client";
 import { User } from "../types";
+import { ApiResponse } from "./types";
 
-export interface AuthResponse {
-  success: boolean;
-  data: {
-    user: User;
-    token: string;
-  };
-}
+export type AuthResponse = ApiResponse<{
+  user: User;
+  token: string;
+}>;
 
-export interface ProfileResponse {
-  success: boolean;
-  data: User;
-}
+export type ProfileResponse = ApiResponse<User>;
 
 export const authApi = {
+  // Firebase Google Sign-In: Sync Firebase user with backend
   syncFirebaseUser: (idToken: string) =>
     apiClient<AuthResponse>("/auth/sync", {
       method: "POST",
       body: JSON.stringify({ idToken }),
     }),
 
-  login: (email: string, idToken: string) =>
-    apiClient<AuthResponse>("/auth/sync", {
+  // Manual Login: Authenticate with email/password (NO Firebase)
+  login: (email: string, password: string) =>
+    apiClient<AuthResponse>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, idToken }),
+      body: JSON.stringify({ email, password }),
     }),
 
-  register: (email: string, name: string, idToken: string, role: string = "STUDENT") =>
-    apiClient<AuthResponse>("/auth/sync", {
+  // Manual Registration: Create new user with email/password (NO Firebase)
+  register: (email: string, password: string, name: string, role: string = "STUDENT") =>
+    apiClient<AuthResponse>("/auth/register", {
       method: "POST",
-      body: JSON.stringify({ email, name, idToken, role }),
+      body: JSON.stringify({ email, password, name, role }),
     }),
 
   getMe: () =>

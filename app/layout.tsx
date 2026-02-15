@@ -1,29 +1,32 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter, Outfit } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth-context"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 import { OfflineIndicator } from "@/components/offline-indicator"
+import { Toaster } from "sonner"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" })
+
+export const viewport: Viewport = {
+  themeColor: "#0ea5e9",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
 
 export const metadata: Metadata = {
   title: "TosRean - Learn Anything, Anywhere",
   description: "Master new skills with our comprehensive online courses. Learn from industry experts and advance your career.",
   manifest: "/manifest.json",
-  themeColor: "#0ea5e9",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "TosRean",
-  },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
   },
   keywords: ["e-learning", "online courses", "education", "skills", "career growth"],
   generator: 'v0.app'
@@ -45,9 +48,12 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} ${outfit.variable}`}>
         <AuthProvider>
-          {children}
-          <PWAInstallPrompt />
-          <OfflineIndicator />
+          <TooltipProvider>
+            {children}
+            <Toaster position="top-center" richColors />
+            <PWAInstallPrompt />
+            <OfflineIndicator />
+          </TooltipProvider>
         </AuthProvider>
       </body>
     </html>

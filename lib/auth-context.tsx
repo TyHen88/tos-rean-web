@@ -18,13 +18,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 import { auth } from "@/lib/firebase"
 import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
-  onAuthStateChanged
+  signOut as firebaseSignOut,
 } from "firebase/auth"
 import { authApi } from "./api/auth"
 
@@ -93,14 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // 1. Authenticate with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
-
-      // 2. Get the real ID Token
-      const idToken = await userCredential.user.getIdToken(true)
-
-      // 3. Sync with our backend
-      const response = await authApi.syncFirebaseUser(idToken)
+      // Manual login - authenticate directly with backend database (NO Firebase)
+      const response = await authApi.login(email, password)
 
       const { user, token } = response.data
       setUser(user)
@@ -121,17 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     role: "admin" | "student" | "instructor" = "student",
   ): Promise<boolean> => {
     try {
-      // 1. Create user in Firebase
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-
-      // 2. Set display name in Firebase
-      await updateProfile(userCredential.user, { displayName: name })
-
-      // 3. Get the real ID Token
-      const idToken = await userCredential.user.getIdToken(true)
-
-      // 4. Sync with our backend (sending name and role for initial creation)
-      const response = await authApi.register(email, name, idToken, role.toUpperCase())
+      // Manual registration - create user directly in backend database (NO Firebase)
+      const response = await authApi.register(email, password, name, role.toUpperCase())
 
       const { user, token } = response.data
       setUser(user)

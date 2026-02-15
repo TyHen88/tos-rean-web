@@ -37,7 +37,9 @@ export async function apiClient<T>(
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || "An error occurred while fetching the data.");
+    const error = new Error(data.message || "An error occurred while fetching the data.");
+    (error as any).status = response.status;
+    throw error;
   }
 
   return data;

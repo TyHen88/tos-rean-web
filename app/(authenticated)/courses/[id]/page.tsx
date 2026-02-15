@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import type { Course, Lesson } from "@/lib/types"
 import Link from "next/link"
+import { useAuth } from "@/lib/auth-context"
 import { coursesApi } from "@/lib/api/courses"
 import { enrollmentsApi } from "@/lib/api/enrollments"
 import { Loader2, ArrowLeft, BookOpen, Clock, Star, Users, PlayCircle, Lock, CheckCircle } from "lucide-react"
@@ -16,21 +17,53 @@ export default function CourseDetailPage() {
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
+  const { user, isAdmin } = useAuth()
   const [course, setCourse] = useState<Course | null>(null)
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [loading, setLoading] = useState(true)
   const [enrollLoading, setEnrollLoading] = useState(false)
+  const [isEnrolled, setIsEnrolled] = useState(false)
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
       try {
         const courseRes = await coursesApi.getCourseDetails(id)
-        setCourse(courseRes.data)
 
-        // Fetch lessons
-        const contentRes = await enrollmentsApi.getCourseContent(id)
-        setLessons(contentRes.data.lessons)
+        // Normalize the course data to handle field name differences
+        const normalizedCourse = {
+          ...courseRes.data,
+          // Map averageRating to rating for display
+          rating: courseRes.data.rating ?? (typeof courseRes.data.averageRating === 'string'
+            ? parseFloat(courseRes.data.averageRating)
+            : courseRes.data.averageRating),
+          // Map enrollmentCount to studentsCount for display
+          studentsCount: courseRes.data.studentsCount ?? courseRes.data.enrollmentCount ?? 0,
+          // Ensure lessonsCount is set (will be updated when lessons load)
+          lessonsCount: courseRes.data.lessonsCount ?? 0,
+        }
+
+        setCourse(normalizedCourse)
+
+        // Try to fetch lessons if enrolled or admin/instructor
+        try {
+          const contentRes = await enrollmentsApi.getCourseContent(id)
+          const loadedLessons = contentRes.data.lessons || []
+          setLessons(loadedLessons)
+          setIsEnrolled(true)
+
+          // Update lessonsCount based on actual lessons
+          setCourse(prev => prev ? { ...prev, lessonsCount: loadedLessons.length } : prev)
+        } catch (error: any) {
+          // If 403/Not Enrolled, we just show the public view
+          const isNotEnrolled = error.status === 403 || error.message?.toLowerCase().includes("not enrolled");
+
+          if (isNotEnrolled) {
+            setIsEnrolled(false)
+          } else {
+            console.error("Failed to load course content:", error)
+          }
+        }
       } catch (error) {
         console.error("Failed to load course details:", error)
         router.push("/courses")
@@ -89,13 +122,13 @@ export default function CourseDetailPage() {
                 <Badge variant="secondary">{course.category}</Badge>
               </div>
               <div className="flex items-center gap-1 text-yellow-500 font-medium">
-                <Star className="w-4 h-4 fill-current" /> {course.rating} ({course.studentsCount} students)
+                <Star className="w-4 h-4 fill-current" /> {course.rating?.toFixed(1) || 'N/A'} ({course.studentsCount || 0} students)
               </div>
               <div className="flex items-center gap-1 text-muted-foreground">
                 <Clock className="w-4 h-4" /> {course.duration}
               </div>
               <div className="flex items-center gap-1 text-muted-foreground">
-                <BookOpen className="w-4 h-4" /> {course.lessonsCount} lessons
+                <BookOpen className="w-4 h-4" /> {course.lessonsCount || lessons.length || 0} lessons
               </div>
               <div className="flex items-center gap-1 text-muted-foreground">
                 <Users className="w-4 h-4" /> {course.instructorName}
@@ -123,7 +156,7 @@ export default function CourseDetailPage() {
                     <AccordionItem value={lesson.id} key={lesson.id} className="px-4">
                       <AccordionTrigger className="hover:no-underline">
                         <div className="flex items-center gap-3 text-left">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${lesson.isFree ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${lesson.isFree || isEnrolled || isAdmin || (user?.id === course?.instructorId) ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
                             {index + 1}
                           </div>
                           <div>
@@ -135,7 +168,13 @@ export default function CourseDetailPage() {
                       <AccordionContent className="pl-11 text-muted-foreground">
                         {lesson.description}
                         <div className="mt-2 flex items-center gap-2">
-                          {lesson.isFree ? (
+                          {isEnrolled || isAdmin || (user?.id === course?.instructorId) ? (
+                            <Button size="sm" variant="secondary" className="h-7 text-xs" asChild>
+                              <Link href={`/courses/${id}/lessons/${lesson.id}`}>
+                                Start Lesson
+                              </Link>
+                            </Button>
+                          ) : lesson.isFree ? (
                             <Button size="sm" variant="secondary" className="h-7 text-xs">Preview Lesson</Button>
                           ) : (
                             <span className="flex items-center gap-1 text-xs"><Lock className="w-3 h-3" /> Locked</span>
@@ -158,15 +197,21 @@ export default function CourseDetailPage() {
               <CardDescription>One-time payment. Lifetime access.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button
-                size="lg"
-                className="w-full"
-                onClick={handleEnroll}
-                disabled={enrollLoading}
-              >
-                {enrollLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Enroll Now
-              </Button>
+              {isEnrolled || isAdmin || (user?.id === course?.instructorId) ? (
+                <Button size="lg" className="w-full" variant="outline" asChild>
+                  <Link href={`/courses/${id}/learn`}>Continue Learning</Link>
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={handleEnroll}
+                  disabled={enrollLoading}
+                >
+                  {enrollLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Enroll Now
+                </Button>
+              )}
               <p className="text-xs text-center text-muted-foreground">30-Day Money-Back Guarantee</p>
 
               <div className="space-y-3 pt-4 border-t">
@@ -176,7 +221,7 @@ export default function CourseDetailPage() {
                     <Clock className="w-4 h-4 text-primary" /> {course.duration} on-demand video
                   </li>
                   <li className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-primary" /> {course.lessonsCount} lessons
+                    <BookOpen className="w-4 h-4 text-primary" /> {course.lessonsCount || lessons.length || 0} lessons
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-primary" /> Certificate of completion
